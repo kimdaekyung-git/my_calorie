@@ -1,7 +1,7 @@
 /**
  * 음식 검색 컴포넌트 테스트 (RED 상태 - 아직 컴포넌트 미구현)
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { server } from '../../mocks/server';

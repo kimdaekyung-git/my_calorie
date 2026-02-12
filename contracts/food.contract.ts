@@ -28,8 +28,29 @@ export interface FoodItem {
 
 export type FoodSearchResponse = ApiResponse<FoodItem[]>;
 
-// --- API Endpoint ---
-// GET /api/v1/foods?q={query}&limit={limit}
-// 성공: 200 + FoodSearchResponse
+// --- 사진 분석 ---
+
+export type Confidence = 'high' | 'medium' | 'low';
+
+export interface DetectedFood {
+  detected_name: string;
+  confidence: Confidence;
+  matched_foods: FoodItem[];
+}
+
+export interface FoodAnalysisMeta {
+  total_detected: number;
+  model: string;
+}
+
+export interface FoodAnalysisResponse {
+  data: DetectedFood[];
+  meta: FoodAnalysisMeta;
+}
+
+// --- API Endpoints ---
+// GET  /api/v1/foods?q={query}&limit={limit}
+// POST /api/v1/foods/analyze-image  (multipart/form-data, field: image)
+// 성공: 200 + FoodSearchResponse | FoodAnalysisResponse
 // 빈 검색어: 400
 // 결과 없음: 200 + { data: [], meta: { total: 0 } }

@@ -1,7 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { mockFoods } from '../data/food';
-
-const API_BASE = 'http://localhost:8000';
+import { API_BASE } from '../../config';
 
 export const foodHandlers = [
   http.get(`${API_BASE}/api/v1/foods`, ({ request }) => {

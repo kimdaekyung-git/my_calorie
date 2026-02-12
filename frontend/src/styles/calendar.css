@@ -1,0 +1,73 @@
+.rdp-root {
+  --rdp-accent-color: #6B9080;
+  --rdp-accent-background-color: #6B9080;
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-border-radius: 10px;
+
+  width: 100%;
+  font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
+}
+
+.rdp-month_caption {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2D3436;
+  padding: 0.25rem 0;
+}
+
+.rdp-weekday {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #8E8E8E;
+}
+
+.rdp-day {
+  font-size: 0.85rem;
+  color: #2D3436;
+}
+
+.rdp-day_button:hover {
+  background-color: #A4C3B2;
+  color: white;
+}
+
+.rdp-selected .rdp-day_button {
+  background-color: #6B9080;
+  color: white;
+  font-weight: 600;
+}
+
+.rdp-today:not(.rdp-selected) .rdp-day_button {
+  border: 1.5px solid #6B9080;
+  font-weight: 600;
+  color: #6B9080;
+}
+
+.rdp-disabled .rdp-day_button {
+  color: #E8E4DF;
+  cursor: not-allowed;
+}
+
+.rdp-disabled .rdp-day_button:hover {
+  background-color: transparent;
+  color: #E8E4DF;
+}
+
+.rdp-nav {
+  gap: 0.25rem;
+}
+
+.rdp-button_previous,
+.rdp-button_next {
+  color: #8E8E8E;
+  border-radius: 8px;
+}
+
+.rdp-button_previous:hover,
+.rdp-button_next:hover {
+  background-color: #F8F6F2;
+  color: #2D3436;
+}
