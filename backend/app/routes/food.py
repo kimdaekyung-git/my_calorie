@@ -12,7 +12,7 @@ from app.schemas.food_analysis import (
     FoodAnalysisResponse,
 )
 from app.services.food_service import search_foods
-from app.services.gemini_service import analyze_food_image, GEMINI_MODEL
+from app.services.gemini_service import analyze_food_image, OPENAI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +77,13 @@ async def analyze_food_photo(image: UploadFile = File(...)):
             detail="이미지 크기가 10MB를 초과합니다",
         )
 
-    # Gemini Vision으로 음식 인식
+    # OpenAI Vision으로 음식 인식
     try:
         detected = await analyze_food_image(image_bytes, image.content_type)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        logger.error("Gemini API 호출 실패: %s", e)
+        logger.error("OpenAI API 호출 실패: %s", e)
         raise HTTPException(status_code=502, detail="AI 분석 서비스에 연결할 수 없습니다")
 
     # 인식된 음식명마다 기존 search_foods()로 병렬 검색
@@ -108,6 +108,6 @@ async def analyze_food_photo(image: UploadFile = File(...)):
         data=list(detected_foods),
         meta=FoodAnalysisMeta(
             total_detected=len(detected_foods),
-            model=GEMINI_MODEL,
+            model=OPENAI_MODEL,
         ),
     )

@@ -1,14 +1,16 @@
-"""Gemini Vision API를 사용한 음식 사진 분석 서비스"""
+"""OpenAI Vision API를 사용한 음식 사진 분석 서비스"""
 
-import asyncio
+import base64
 import json
 import logging
 import os
 
+import httpx
+
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-2.0-flash"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = "gpt-4o"
 
 FOOD_ANALYSIS_PROMPT = """이 사진에 있는 음식을 모두 식별해주세요.
 
@@ -23,8 +25,8 @@ FOOD_ANALYSIS_PROMPT = """이 사진에 있는 음식을 모두 식별해주세�
 {"foods": [{"name": "음식이름", "confidence": "high"}]}"""
 
 
-def _parse_gemini_response(text: str) -> list[dict]:
-    """Gemini 응답 텍스트에서 JSON을 파싱합니다.
+def _parse_response(text: str) -> list[dict]:
+    """AI 응답 텍스트에서 JSON을 파싱합니다.
 
     마크다운 코드블록(```json ... ```)으로 감싸진 경우도 처리합니다.
     """
@@ -33,7 +35,6 @@ def _parse_gemini_response(text: str) -> list[dict]:
     # 마크다운 코드블록 제거
     if cleaned.startswith("```"):
         lines = cleaned.split("\n")
-        # 첫 줄(```json)과 마지막 줄(```) 제거
         lines = [l for l in lines if not l.strip().startswith("```")]
         cleaned = "\n".join(lines).strip()
 
@@ -52,21 +53,8 @@ def _parse_gemini_response(text: str) -> list[dict]:
     return result
 
 
-def _call_gemini_sync(image_bytes: bytes, mime_type: str) -> list[dict]:
-    """동기적으로 Gemini Vision API를 호출합니다."""
-    import google.generativeai as genai
-
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(GEMINI_MODEL)
-
-    response = model.generate_content(
-        [
-            FOOD_ANALYSIS_PROMPT,
-            {"mime_type": mime_type, "data": image_bytes},
-        ]
-    )
-
-    return _parse_gemini_response(response.text)
+# 하위 호환성을 위한 별칭
+_parse_gemini_response = _parse_response
 
 
 async def analyze_food_image(image_bytes: bytes, mime_type: str) -> list[dict]:
@@ -75,7 +63,39 @@ async def analyze_food_image(image_bytes: bytes, mime_type: str) -> list[dict]:
     Returns:
         [{"name": "김치찌개", "confidence": "high"}, ...]
     """
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다")
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다")
 
-    return await asyncio.to_thread(_call_gemini_sync, image_bytes, mime_type)
+    b64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": OPENAI_MODEL,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": FOOD_ANALYSIS_PROMPT},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:{mime_type};base64,{b64_image}",
+                                },
+                            },
+                        ],
+                    }
+                ],
+                "max_tokens": 1024,
+            },
+        )
+        response.raise_for_status()
+
+    body = response.json()
+    text = body["choices"][0]["message"]["content"]
+    return _parse_response(text)

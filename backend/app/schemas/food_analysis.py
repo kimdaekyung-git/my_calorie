@@ -15,7 +15,7 @@ class DetectedFood(BaseModel):
 
 class FoodAnalysisMeta(BaseModel):
     total_detected: int
-    model: str = "gemini-2.0-flash"
+    model: str = "gpt-4o"
 
 
 class FoodAnalysisResponse(BaseModel):

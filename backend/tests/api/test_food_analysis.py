@@ -43,8 +43,8 @@ class TestAnalyzeImageSuccess:
 
     @patch("app.routes.food.analyze_food_image", new_callable=AsyncMock)
     @patch("app.routes.food.search_foods", new_callable=AsyncMock)
-    def test_returns_detected_foods_with_matches(self, mock_search, mock_gemini):
-        mock_gemini.return_value = [
+    def test_returns_detected_foods_with_matches(self, mock_search, mock_vision):
+        mock_vision.return_value = [
             {"name": "김치찌개", "confidence": "high"},
             {"name": "흰쌀밥", "confidence": "high"},
         ]
@@ -77,12 +77,12 @@ class TestAnalyzeImageSuccess:
         assert len(body["data"][0]["matched_foods"]) == 1
         assert body["data"][0]["matched_foods"][0]["name"] == "김치찌개"
         assert body["meta"]["total_detected"] == 2
-        assert body["meta"]["model"] == "gemini-2.0-flash"
+        assert body["meta"]["model"] == "gpt-4o"
 
     @patch("app.routes.food.analyze_food_image", new_callable=AsyncMock)
     @patch("app.routes.food.search_foods", new_callable=AsyncMock)
-    def test_returns_empty_matches_when_search_fails(self, mock_search, mock_gemini):
-        mock_gemini.return_value = [{"name": "알수없는음식", "confidence": "low"}]
+    def test_returns_empty_matches_when_search_fails(self, mock_search, mock_vision):
+        mock_vision.return_value = [{"name": "알수없는음식", "confidence": "low"}]
         mock_search.side_effect = Exception("API error")
 
         buf, ct = _make_image()
@@ -97,8 +97,8 @@ class TestAnalyzeImageSuccess:
         assert body["data"][0]["matched_foods"] == []
 
     @patch("app.routes.food.analyze_food_image", new_callable=AsyncMock)
-    def test_returns_502_when_gemini_fails(self, mock_gemini):
-        mock_gemini.side_effect = RuntimeError("Gemini unavailable")
+    def test_returns_502_when_gemini_fails(self, mock_vision):
+        mock_vision.side_effect = RuntimeError("OpenAI unavailable")
 
         buf, ct = _make_image()
         response = client.post(
@@ -110,8 +110,8 @@ class TestAnalyzeImageSuccess:
         assert "AI 분석 서비스" in response.json()["detail"]
 
     @patch("app.routes.food.analyze_food_image", new_callable=AsyncMock)
-    def test_returns_500_when_api_key_missing(self, mock_gemini):
-        mock_gemini.side_effect = ValueError("GEMINI_API_KEY가 설정되지 않았습니다")
+    def test_returns_500_when_api_key_missing(self, mock_vision):
+        mock_vision.side_effect = ValueError("OPENAI_API_KEY가 설정되지 않았습니다")
 
         buf, ct = _make_image()
         response = client.post(
@@ -126,31 +126,31 @@ class TestGeminiResponseParsing:
     """Gemini 응답 파싱 테스트"""
 
     def test_parses_plain_json(self):
-        from app.services.gemini_service import _parse_gemini_response
+        from app.services.gemini_service import _parse_response
 
         text = '{"foods": [{"name": "김치찌개", "confidence": "high"}]}'
-        result = _parse_gemini_response(text)
+        result = _parse_response(text)
         assert len(result) == 1
         assert result[0]["name"] == "김치찌개"
 
     def test_parses_markdown_wrapped_json(self):
-        from app.services.gemini_service import _parse_gemini_response
+        from app.services.gemini_service import _parse_response
 
         text = '```json\n{"foods": [{"name": "비빔밥", "confidence": "medium"}]}\n```'
-        result = _parse_gemini_response(text)
+        result = _parse_response(text)
         assert len(result) == 1
         assert result[0]["name"] == "비빔밥"
 
     def test_filters_invalid_confidence(self):
-        from app.services.gemini_service import _parse_gemini_response
+        from app.services.gemini_service import _parse_response
 
         text = '{"foods": [{"name": "라면", "confidence": "very_high"}]}'
-        result = _parse_gemini_response(text)
+        result = _parse_response(text)
         assert len(result) == 0
 
     def test_filters_empty_name(self):
-        from app.services.gemini_service import _parse_gemini_response
+        from app.services.gemini_service import _parse_response
 
         text = '{"foods": [{"name": "", "confidence": "high"}]}'
-        result = _parse_gemini_response(text)
+        result = _parse_response(text)
         assert len(result) == 0
